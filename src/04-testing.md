@@ -1,11 +1,9 @@
 # Testing
 
-<!-- This post explores unit and integration testing in `no_std` executables. We will use Rust's support for custom test frameworks to execute test functions inside our kernel. To report the results out of QEMU, we will use different features of QEMU and the `bootimage` tool. -->
 この記事では `no_std` 実行環境での単体テスト及び結合テストについて探ります。Rust のカスタムテストフレームワークのサポートを利用して、私達のカーネル上でテスト関数を実行していきます。QEMU からの結果を出力するために、ここでは QEMU の別の機能と `bootimage` ツールを使います。
 
 <!-- more -->
 
-<!-- This blog is openly developed on [GitHub]. If you have any problems or questions, please open an issue there. You can also leave comments [at the bottom]. The complete source code for this post can be found in the [`post-04`][post branch] branch. -->
 このブログの内容は [GitHub] 上で公開・開発されています。何か問題や質問などがあれば issue をたててください (訳注: リンクは原文(英語)のものになります)。この記事の完全なソースコードは[`post-04` ブランチ][post branch]にあります。
 
 [GitHub]: https://github.com/phil-opp/blog_os
@@ -13,10 +11,8 @@
 
 <!-- toc -->
 
-<!-- ## Requirements -->
 ## 要求
 
-<!-- This post replaces the (now deprecated) [_Unit Testing_] and [_Integration Tests_] posts. It assumes that you have followed the [_A Minimal Rust Kernel_] post after 2019-04-27. Mainly, it requires that you have a `.cargo/config` file that [sets a default target] and [defines a runner executable]. -->
 この記事は(今は非推奨の) [_Unit Testing_] と [_Integration Tests_] の記事の代わりとなるものです。ここでは、2019-04-27 以降の [_A Minimal Rust Kernel_] の記事を読み進めたものとして進めます。主に、 [sets a default target] と [defines a runner executable] での `.cargo/config` ファイルを必要とします。
 
 [_Unit Testing_]: @/second-edition/posts/deprecated/04-unit-testing/index.md
@@ -25,20 +21,16 @@
 [sets a default target]: @/second-edition/posts/02-minimal-rust-kernel/index.md#set-a-default-target
 [defines a runner executable]: @/second-edition/posts/02-minimal-rust-kernel/index.md#using-cargo-run
 
-<!-- ## Testing in Rust -->
 ## Rustでのテスト
 
-<!-- Rust has a [built-in test framework] that is capable of running unit tests without the need to set anything up. Just create a function that checks some results through assertions and add the `#[test]` attribute to the function header. Then `cargo test` will automatically find and execute all test functions of your crate. -->
 Rust には [built-in test framework] があり、何も設定しなくても単体テストを実行することができます。アサーションで結果をチェックする関数をつくり、`#[test]` attribute を関数の先頭に足すだけです。後は `cargo xtest` コマンドが自動的にクレート内のすべてのテスト関数を探して実行してくれます。
 
 [built-in test framework]: https://doc.rust-lang.org/book/second-edition/ch11-00-testing.html
 
-<!-- Unfortunately it's a bit more complicated for `no_std` applications such as our kernel. The problem is that Rust's test framework implicitly uses the built-in [`test`] library, which depends on the standard library. This means that we can't use the default test framework for our `#[no_std]` kernel. -->
 残念ながら、私たちのカーネルのような`no_std`アプリケーションの場合、もうちょっと複雑です。問題はRustのテストフレームワークは暗黙に標準ライブラリに依存している[`test`]ライブラリを使っていることです。これは私たちの`#[no_std]`のカーネルにはデフォルトのテストフレームワークが使えないことを意味しています。
 
 [`test`]: https://doc.rust-lang.org/test/index.html
 
-<!-- We can see this when we try to run `cargo xtest` in our project: -->
 これは`cargo xtest`コマンドを私たちのプロジェクトで走らせてみるとわかります。
 
 ```
@@ -47,26 +39,21 @@ Rust には [built-in test framework] があり、何も設定しなくても単
 error[E0463]: can't find crate for `test`
 ```
 
-<!-- Since the `test` crate depends on the standard library, it is not available for our bare metal target. While porting the `test` crate to a `#[no_std]` context [is possible][utest], it is highly unstable and requires some hacks such as redefining the `panic` macro. -->
 `test`クレートが標準ライブラリに依存しているため、ベアメタルターゲットには利用できません。`test`クレートを`#[no_std]`環境に移植することは[可能です][utest]が、非常に不安定で`panic`マクロを再定義するなどのいくつかのハックが必要です。
 
 [utest]: https://github.com/japaric/utest
 
-<!-- ### Custom Test Frameworks -->
 ### カスタムテストフレームワーク
 
-<!-- Fortunately, Rust supports replacing the default test framework through the unstable [`custom_test_frameworks`] feature. This feature requires no external libraries and thus also works in `#[no_std]` environments. It works by collecting all functions annotated with a `#[test_case]` attribute and then invoking a user-specified runner function with the list of tests as argument. Thus it gives the implementation maximal control over the test process. -->
 幸いにも、Rustは不安定なフィーチャーである[`custom_test_frameworks`]を使うことで、デフォルトのテストフレームワークを置き換えることをサポートしています。このフィーチャーは外部ライブラリを必要としていないため、`#[no_std]`環境でも使うことができます。`#[test_case]`属性を付与した全ての関数を集めてきて、テストのリストを引数としてユーザーが指定したランナー関数を呼び出すことにより動きます。そのため、実装により最大限テストプロセスをコントロールすることができます。
 
 [`custom_test_frameworks`]: https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
 
 
-<!-- The disadvantage compared to the default test framework is that many advanced features such as [`should_panic` tests] are not available. Instead, it is up to the implementation to provide such features itself if needed. This is ideal for us since we have a very special execution environment where the default implementations of such advanced features probably wouldn't work anyway. For example, the `#[should_panic]` attribute relies on stack unwinding to catch the panics, which we disabled for our kernel. -->
 デフォルトのテストフレームワークと比べた時の欠点は[`should_panic` tests]のような進んだ機能が使えないことです。代わりに、このような機能は必要に応じて自身で実装することができます。私たちはとても特殊な実行環境を用いていてデフォルトの進んだ機能のデフォルト実装はいずれにせよ動かないかもしれないので、これは理想的です。例えば、`#[should_panic]`アトリビュートはパニックをキャッチするため、私たちのカーネルでは無効になっているスタックの巻き戻しに依存しています。
 
 [`should_panic` tests]: https://doc.rust-lang.org/book/ch11-01-writing-tests.html#checking-for-panics-with-should_panic
 
-<!-- To implement a custom test framework for our kernel, we add the following to our `main.rs`: -->
 カーネルにカスタムテストフレームワークを実装するには、次のようなコードを`main.rs`に追加します。
 
 ```rust
@@ -84,17 +71,14 @@ fn test_runner(tests: &[&dyn Fn()]) {
 }
 ```
 
-<!-- Our runner just prints a short debug message and then calls each test function in the list. The argument type `&[&dyn Fn()]` is a [_slice_] of [_trait object_] references of the [_Fn()_] trait. It is basically a list of references to types that can be called like a function. Since the function is useless for non-test runs, we use the `#[cfg(test)]` attribute to include it only for tests. -->
 私たちのランナーは単に短いデバッグメッセージを出力し、リスト内のそれぞれのテスト関数を呼び出すだけです。引数の型である`&[&dyn Fn()]`は[_Fn()_]トレートの[_trait object_]への参照の[_slice_]です。基本的には関数のように呼べる型への参照のリストです。このランナー関数はテストでない実行では無意味なので、テストにしかこれが含まれないように`#[cfg(test)]`アトリビュートを使います。
 
 [_slice_]: https://doc.rust-lang.org/std/primitive.slice.html
 [_trait object_]: https://doc.rust-lang.org/1.30.0/book/first-edition/trait-objects.html
 [_Fn()_]: https://doc.rust-lang.org/std/ops/trait.Fn.html
 
-<!-- When we run `cargo xtest` now, we see that it now succeeds. However, we still see our "Hello World" instead of the message from our `test_runner`. The reason is that our `_start` function is still used as entry point. The custom test frameworks feature generates a `main` function that calls `test_runner`, but this function is ignored because we use the `#[no_main]` attribute and provide our own entry point. -->
 `cargo xtest`を走らせると、今度は成功します。しかし、`test_runner`からのメッセージではなく、まだ「Hello World」が出力されます。理由は`_start`関数が未だにエントリーポイントとして使われているからです。カスタムテストフレームワークの機能は`test_runner`と呼ばれる`main`関数を生成しますが、この関数は、私たちが`#[no_main]`アトリビュートを使って独自のエントリーポイントを渡しているため無視されます。
 
-<!-- To fix this, we first need to change the name of the generated function to something different than `main` through the `reexport_test_harness_main` attribute. Then we can call the renamed function from our `_start` function: -->
 これを直すには、まずは生成される関数の名前を`reexport_test_harness_main`アトリビュートを使って変えて`main`ではないようにする必要があります。そうすることで、名前を変えた関数を`_start`関数から呼び出すことができます。
 
 ```rust
@@ -113,10 +97,8 @@ pub extern "C" fn _start() -> ! {
 }
 ```
 
-<!-- We set the name of the test framework entry function to `test_main` and call it from our `_start` entry point. We use [conditional compilation] to add the call to `test_main` only in test contexts because the function is not generated on a normal run. -->
 テストフレームワークのエントリー関数を`test_main`にして、`_start`エントリーポイントから呼び出しています。通常の実行ではこの関数は生成されないため、`test_main`の呼び出しがテストの状況でのみ追加されるように[条件付きコンパイル]を使っています。
 
-<!-- When we now execute `cargo xtest`, we see the "Running 0 tests" message from our `test_runner` on the screen. We are now ready to create our first test function: -->
 ここで`cargo xtest`を実行すると、`test_runner`からの「Running 0 tests」のメッセージがスクリーンの上に表示されます。私たちは最初のテスト関数をつくる用意ができました。
 
 ```rust
@@ -130,27 +112,21 @@ fn trivial_assertion() {
 }
 ```
 
-<!-- When we run `cargo xtest` now, we see the following output: -->
 `cargo xtest`を実行すると、コントは下のような結果が出るでしょう。
 
 ![QEMU printing "Hello World!", "Running 1 tests", and "trivial assertion... [ok]"](qemu-test-runner-output.png)
 
-<!-- The `tests` slice passed to our `test_runner` function now contains a reference to the `trivial_assertion` function. From the `trivial assertion... [ok]` output on the screen we see that the test was called and that it succeeded. -->
 `test_runner`関数に渡されてきた`tests`スライスには`trivial_assertion`関数が含まれています。`trivial assertion... [ok]`のスクリーンへの出力から、テストが呼び出されてそれが成功だったことが確認できます。
 
-<!-- After executing the tests, our `test_runner` returns to the `test_main` function, which in turn returns to our `_start` entry point function. At the end of `_start`, we enter an endless loop because the entry point function is not allowed to return. This is a problem, because we want `cargo xtest` to exit after running all tests. -->
 テスト実行後は、`test_runner`は`test_main`に返っていき、今度は`_start`エントリーポイント関数に返っていきます。`_start`の終わりで、エントリーポイントの関数がリターンすることが許されていないため、無限ループに入ります。これは問題です。なぜなら私たちは`cargo xtest`が全てのテストが走り終わったら終了してほしいからです。
 
-<!-- ## Exiting QEMU -->
 ## QEMUを終了させる
 
-<!-- Right now we have an endless loop at the end of our `_start` function and need to close QEMU manually on each execution of `cargo xtest`. This is unfortunate because we also want to run `cargo xtest` in scripts without user interaction. The clean solution to this would be to implement a proper way to shutdown our OS. Unfortunately this is relatively complex, because it requires implementing support for either the [APM] or [ACPI] power management standard. -->
 現在、`_start`関数の終わりに無限ループがあり、`cargo xtest`の各実行毎に手動でQEMUを終了させる必要があります。これは、スクリプト内の`cargo xtest`をユーザーの操作なしで走らせたいから不適切です。これのきれいな解決法はOSを終了する適切な方法を実装することです。残念ながらこれは比較的複雑です。なぜなら、[APM]か[ACPI]の電源管理スタンダードのサポートを実装する必要があるからです。
 
 [APM]: https://wiki.osdev.org/APM
 [ACPI]: https://wiki.osdev.org/ACPI
 
-<!-- Luckily, there is an escape hatch: QEMU supports a special `isa-debug-exit` device, which provides an easy way to exit QEMU from the guest system. To enable it, we need to pass a `-device` argument to QEMU. We can do so by adding a `package.metadata.bootimage.test-args` configuration key in our `Cargo.toml`: -->
 幸いにも、緊急避難口があります。QEMUは、ゲストシステムからQEMUを終了する簡単な方法を提供する、特殊な`isa-debug-exit`デバイスをサポートしています。これを有効にするには、`-device`引数をQEMUに渡してあげる必要があります。`Cargo.toml`に`package.metadata.bootimage.test-args`の設定キーに追加することで可能です。
 
 ```toml
@@ -160,38 +136,28 @@ fn trivial_assertion() {
 test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04"]
 ```
 
-<!-- The `bootimage runner` appends the `test-args` to the default QEMU command for all test executables. For a normal `cargo xrun`, the arguments are ignored. -->
 `bootimage runner`はデフォルトのすべてのテスト実行環境のQEMUコマンドに`test-args`を付け加えます。通常の`cargo xrun`では、これらの引数は無視されます。
 
-<!-- Together with the device name (`isa-debug-exit`), we pass the two parameters `iobase` and `iosize` that specify the _I/O port_ through which the device can be reached from our kernel. -->
 デバイスの名前（`isa-debug-exit`）とともに、デバイスがカーネルから到達させることができる_I/Oポート_を指定する`iobase`と`iosize`の２つのパラメーターを渡しました。
 
-<!-- ### I/O Ports -->
 ### I/Oポート
 
-<!-- There are two different approaches for communicating between the CPU and peripheral hardware on x86, **memory-mapped I/O** and **port-mapped I/O**. We already used memory-mapped I/O for accessing the [VGA text buffer] through the memory address `0xb8000`. This address is not mapped to RAM, but to some memory on the VGA device. -->
 CPUとペリフェラルハードウェア間の通信をする２つの異なるアプローチがあります。**メモリマップド I/O **と**ポートマップド I/O ** です。私たちはすでにメモリアドレス`0xb8000`から [VGA text buffer] にアクセスするためにメモリマップドI/Oを使いました。
 
-<!-- [VGA text buffer]: @/second-edition/posts/03-vga-text-buffer/index.md -->
 [VGA text buffer]: @/second-edition/posts/03-vga-text-buffer/index.md
 
-<!-- In contrast, port-mapped I/O uses a separate I/O bus for communication. Each connected peripheral has one or more port numbers. To communicate with such an I/O port there are special CPU instructions called `in` and `out`, which take a port number and a data byte (there are also variations of these commands that allow sending an `u16` or `u32`). -->
 一方で、ポートマップド I/O は通信のために分けられた I/O バスを使います。それぞれ繋がっているペリフェラルは１つまたは複数のポート番号を持ちます。そのような I/O ポートと通信するために、ポート番号とデータタイプをとる `in` と `out` と呼ばれる特殊なCPU命令があります（`u16`や`u32`を送ることができるそれぞれのコマンドの派生もあります）。
 
-<!-- The `isa-debug-exit` devices uses port-mapped I/O. The `iobase` parameter specifies on which port address the device should live (`0xf4` is a [generally unused][list of x86 I/O ports] port on the x86's IO bus) and the `iosize` specifies the port size (`0x04` means four bytes). -->
 `isa-debug-exit`デバイスはポートマップドI/Oを使っています。`iobase`パラメーターがどのポートアドレス上にデバイスがあるかを指定して（`oxf4`はx86のIOバスでは[通常は使用されない][list of x85 I/O ports]ポートです）`iosize`はポートのサイズを指定します（`0x04`は4バイトを意味します）。
 
 [list of x86 I/O ports]: https://wiki.osdev.org/I/O_Ports#The_list
 
-<!-- ### Using the Exit Device -->
 ### Exitデバイスを使う
 
-<!-- The functionality of the `isa-debug-exit` device is very simple. When a `value` is written to the I/O port specified by `iobase`, it causes QEMU to exit with [exit status] `(value << 1) | 1`. So when we write `0` to the port QEMU will exit with exit status `(0 << 1) | 1 = 1` and when we write `1` to the port it will exit with exit status `(1 << 1) | 1 = 3`. -->
 `isa-debug-exit`デバイスの機能はとても単純です。`value`が`iobase`で指定されたI/Oポートに書き込まれると、QEMUを[exit status]`(value << 1) | 1`で終了させます。そのため、ポートに`0`を書き込むとQEMUは終了ステータス`(0 << 1) | 1 = 1`で終了し、`1`をポートに書き込むと`(1 << 1) | 1 = 3`で終了するでしょう。
 
 [exit status]: https://en.wikipedia.org/wiki/Exit_status
 
-<!-- Instead of manually invoking the `in` and `out` assembly instructions, we use the abstractions provided by the [`x86_64`] crate. To add a dependency on that crate, we add it to the `dependencies` section in our `Cargo.toml`: -->
 手動で`in`と`out`のアセンブリ命令を呼び出す代わりに、`x86_64`クレートが提供する抽象化を使います。このクレートの依存関係を追加するために、`Cargo.toml`の`dependencies`セクションに以下を追加します。
 
 [`x86_64`]: https://docs.rs/x86_64/0.7.5/x86_64/
@@ -203,7 +169,6 @@ CPUとペリフェラルハードウェア間の通信をする２つの異な�
 x86_64 = "0.7.5"
 ```
 
-<!-- Now we can use the [`Port`] type provided by the crate to create an `exit_qemu` function: -->
 これで私たちは`exit_qemu`関数をつくるために、このクレートの提供する[`Port`]タイプを使うことができます
 
 [`Port`]: https://docs.rs/x86_64/0.7.5/x86_64/instructions/port/struct.Port.html
@@ -228,13 +193,10 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 }
 ```
 
-<!-- The function creates a new [`Port`] at `0xf4`, which is the `iobase` of the `isa-debug-exit` device. Then it writes the the passed exit code to the port. We use `u32` because we specified the `iosize` of the `isa-debug-exit` device as 4 bytes. Both operations are unsafe, because writing to an I/O port can generally result in arbitrary behavior. -->
 この関数は新しい[`Port`]を`isa-debug-exit`デバイスの`iobase`である`0xf4`につくります。そして、終了コードをポートに書き込みます。`isa-debug-exit`デバイスの`iosize`を4バイトで指定するので`u32`を使います。I/Oポートに書き込むのは一般に任意の行動になり得るので、どちらの操作もアンセーフです。
 
-<!-- For specifying the exit status, we create a `QemuExitCode` enum. The idea is to exit with the success exit code if all tests succeeded and with the failure exit code otherwise. The enum is marked as `#[repr(u32)]` to represent each variant by an `u32` integer. We use exit code `0x10` for success and `0x11` for failure. The actual exit codes do not matter much, as long as they don't clash with the default exit codes of QEMU. For example, using exit code `0` for success is not a good idea because it becomes `(0 << 1) | 1 = 1` after the transformation, which is the default exit code when QEMU failed to run. So we could not differentiate a QEMU error from a successful test run. -->
 終了ステータスを指定するために、`QemuExitCode` 列挙型をつくります。全てのテストが成功したら正常な終了コードで、そうでなければ失敗の終了コードで終了させるという考えを元にします。この列挙型に `#[repr(u32)]` attribute を付与し、各ヴァリアントを `u32` 整数型で表します。成功した場合には終了コード `0x10` を、失敗した場合には `0x11` を使用します。実際の終了コードはデフォルトの QEMU の終了コードと衝突しない限りそれほど重要ではありません。例えば `0` を成功を表すために使用すると、変換後に `(0 << 1) | 1 = 1` となります。これは QEMU が実行に失敗した時のデフォルトの終了コードなのでよくありません。そのため、テストの実行が成功した場合と QEMU のエラーが区別できなくなってしまいます。
 
-<!-- We can now update our `test_runner` to exit QEMU after all tests ran: -->
 これで全てのテスト終了後に `test_runner` 関数を更新して QEMU を終了できるようになりました:
 
 ```rust
@@ -248,7 +210,6 @@ fn test_runner(tests: &[&dyn Fn()]) {
 }
 ```
 
-<!-- When we run `cargo xtest` now, we see that QEMU immediately closes after executing the tests. The problem is that `cargo test` interprets the test as failed even though we passed our `Success` exit code: -->
 `cargo xtest` を実行すると、全てのテストが終了したあと、QEMU がすぐに終了することがわかります。問題は `cargo xtest` が終了コード `Success` を渡しても失敗と解釈してしまうことです。
 
 ```
@@ -264,7 +225,6 @@ Running: `qemu-system-x86_64 -drive format=raw,file=/…/target/x86_64-blog_os/d
 error: test failed, to rerun pass '--bin blog_os'
 ```
 
-<!-- The problem is that `cargo test` considers all error codes other than `0` as failure. -->
 `cargo xtest` が `0` 以外のすべてのエラーコードを失敗と認識してしまうことが原因です。
 
 ### Success Exit Code
