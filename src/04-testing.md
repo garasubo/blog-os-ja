@@ -9,7 +9,7 @@ date = 2019-04-27
 # Testing
 
 <!-- This post explores unit and integration testing in `no_std` executables. We will use Rust's support for custom test frameworks to execute test functions inside our kernel. To report the results out of QEMU, we will use different features of QEMU and the `bootimage` tool. -->
-このポストでは`no_std`実行環境でのユニットテスト及び結合テストについて探っていきます。私たちのカーネル内のテスト関数を実行するため、カスタムテストフレームワークのためのRustのサポートを使います。QEMU外へ結果を伝えるため、ここではQEMUの別の機能と`bootimage`ツールを使います。
+この記事では `no_std` 実行環境での単体テスト及び結合テストについて探ります。Rust のカスタムテストフレームワークのサポートを利用して、私達のカーネル上でテスト関数を実行していきます。QEMU からの結果を出力するために、ここでは QEMU の別の機能と `bootimage` ツールを使います。
 
 <!-- more -->
 
