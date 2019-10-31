@@ -25,7 +25,7 @@ date = 2019-04-27
 ## 要求
 
 <!-- This post replaces the (now deprecated) [_Unit Testing_] and [_Integration Tests_] posts. It assumes that you have followed the [_A Minimal Rust Kernel_] post after 2019-04-27. Mainly, it requires that you have a `.cargo/config` file that [sets a default target] and [defines a runner executable]. -->
-このポストは（今は非推薦の）[_ユニットテスト_]と[_結合テスト_]のポストの代わりとなるものです。あなたはすでに2019-04-27以降の[_最小のRustカーネル_]のポストに従っているとして進めます。主に、[デフォルトターゲットの指定]と[ランナー実行環境を定義]する`.cargo/config`ファイルを必要とします。
+この記事は(今は非推奨の)[ユニットテスト]と[結合テスト]の記事の代わりとなるものです。ここでは、2019-04-27 以降の [_A Minimal Rust Kernel_] の記事を読み進めたものとして進めます。主に、[デフォルトターゲットの指定]と[ランナー実行環境を定義]する `.cargo/config` ファイルを必要とします。
 
 [_ユニットテスト_]: @/second-edition/posts/deprecated/04-unit-testing/index.md
 [_結合テスト_]: @/second-edition/posts/deprecated/05-integration-tests/index.md
