@@ -38,7 +38,7 @@ date = 2019-04-27
 
 <!-- Rust has a [built-in test framework] that is capable of running unit tests without the need to set anything up. Just create a function that checks some results through assertions and add the `#[test]` attribute to the function header. Then `cargo test` will automatically find and execute all test functions of your crate. -->
 Rustはセットアップする必要なしでユニットテストを走らせられる[内蔵されたテストフレームワーク]を持っています。アサーションで結果をチェックする関数をつくり、`#[test]`アトリビュートを関数の先頭に足すだけです。
-すると、`cargo test`コマンドは自動的にクレート内のすべてのテスト関数を探して実行してくれます。
+後は `cargo test` コマンドが自動的にクレート内のすべてのテスト関数を探して実行してくれます。
 
 [内蔵されたテストフレームワーク]: https://doc.rust-lang.org/book/second-edition/ch11-00-testing.html
 
