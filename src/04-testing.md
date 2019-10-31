@@ -274,7 +274,7 @@ error: test failed, to rerun pass '--bin blog_os'
 ```
 
 <!-- The problem is that `cargo test` considers all error codes other than `0` as failure. -->
-問題は`cargo test`が`0`以外のすべてのエラーコードを失敗と認識してしまうことです。
+`cargo xtest` が `0` 以外のすべてのエラーコードを失敗と認識してしまうことが原因です。
 
 ### Success Exit Code
 
