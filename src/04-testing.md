@@ -691,7 +691,7 @@ fn panic(info: &PanicInfo) -> ! {
 ```
 
 <!-- To make our `test_runner` available to executables and integration tests, we don't apply the `cfg(test)` attribute to it and make it public. We also factor out the implementation of our panic handler into a public `test_panic_handler` function, so that it is available for executables too. -->
-`test_runner`を実行環境と統合テストから利用できるように、`test_runner`には`cfg(test)`アトリビュートをつけずパブリックにしておきます。パニックハンドラの実装をパブリックな`test_panic_handler`関数にくくりだします。これによって実行環境でも使えるようにします。
+`test_runner` を実行可能ファイルや結合テストから利用できるように、`test_runner` 関数には `cfg(test)` attribute を付与せず、パブリックにしておきます。パニックハンドラの実装をパブリックな `test_panic_handler` 関数にくくりだします。これによって実行可能ファイルでも使えるようにします。
 
 Since our `lib.rs` is tested independently of our `main.rs`, we need to add a `_start` entry point and a panic handler when the library is compiled in test mode. By using the [`cfg_attr`] crate attribute, we conditionally enable the `no_main` attribute in this case.
 
