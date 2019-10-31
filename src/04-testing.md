@@ -258,7 +258,7 @@ fn test_runner(tests: &[&dyn Fn()]) {
 ```
 
 <!-- When we run `cargo xtest` now, we see that QEMU immediately closes after executing the tests. The problem is that `cargo test` interprets the test as failed even though we passed our `Success` exit code: -->
-`cargo xtest`を実行すると、すべてのテストが終了したあとQEMUがすぐに終了することがわかるでしょう。問題は`cargo test`が`Success`終了コードを渡しても失敗と解釈してしまうことです。
+`cargo xtest` を実行すると、全てのテストが終了したあと、QEMU がすぐに終了することがわかります。問題は `cargo xtest` が終了コード `Success` を渡しても失敗と解釈してしまうことです。
 
 ```
 > cargo xtest
