@@ -1,11 +1,3 @@
-+++
-title = "Testing"
-weight = 4
-path = "testing"
-date = 2019-04-27
-
-+++
-
 # Testing
 
 <!-- This post explores unit and integration testing in `no_std` executables. We will use Rust's support for custom test frameworks to execute test functions inside our kernel. To report the results out of QEMU, we will use different features of QEMU and the `bootimage` tool. -->
@@ -25,22 +17,21 @@ date = 2019-04-27
 ## 要求
 
 <!-- This post replaces the (now deprecated) [_Unit Testing_] and [_Integration Tests_] posts. It assumes that you have followed the [_A Minimal Rust Kernel_] post after 2019-04-27. Mainly, it requires that you have a `.cargo/config` file that [sets a default target] and [defines a runner executable]. -->
-この記事は(今は非推奨の)[ユニットテスト]と[結合テスト]の記事の代わりとなるものです。ここでは、2019-04-27 以降の [_A Minimal Rust Kernel_] の記事を読み進めたものとして進めます。主に、[デフォルトターゲットの指定]と[ランナー実行環境を定義]する `.cargo/config` ファイルを必要とします。
+この記事は(今は非推奨の) [_Unit Testing_] と [_Integration Tests_] の記事の代わりとなるものです。ここでは、2019-04-27 以降の [_A Minimal Rust Kernel_] の記事を読み進めたものとして進めます。主に、 [sets a default target] と [defines a runner executable] での `.cargo/config` ファイルを必要とします。
 
-[_ユニットテスト_]: @/second-edition/posts/deprecated/04-unit-testing/index.md
-[_結合テスト_]: @/second-edition/posts/deprecated/05-integration-tests/index.md
-[_最小のRustカーネル_]: @/second-edition/posts/02-minimal-rust-kernel/index.md
-[デフォルトターゲットを指定]: @/second-edition/posts/02-minimal-rust-kernel/index.md#set-a-default-target
-[ランナー実行環境を定義]: @/second-edition/posts/02-minimal-rust-kernel/index.md#using-cargo-run
+[_Unit Testing_]: @/second-edition/posts/deprecated/04-unit-testing/index.md
+[_Integration Tests_]: @/second-edition/posts/deprecated/05-integration-tests/index.md
+[_A Minimal Rust Kernel_]: @/second-edition/posts/02-minimal-rust-kernel/index.md
+[sets a default target]: @/second-edition/posts/02-minimal-rust-kernel/index.md#set-a-default-target
+[defines a runner executable]: @/second-edition/posts/02-minimal-rust-kernel/index.md#using-cargo-run
 
 <!-- ## Testing in Rust -->
 ## Rustでのテスト
 
 <!-- Rust has a [built-in test framework] that is capable of running unit tests without the need to set anything up. Just create a function that checks some results through assertions and add the `#[test]` attribute to the function header. Then `cargo test` will automatically find and execute all test functions of your crate. -->
-Rust には[ビルトインテストフレームワーク]があり、何も設定しなくても単体テストを実行することができます。アサーションで結果をチェックする関数をつくり、`#[test]` attribute を関数の先頭に足すだけです。
-後は `cargo test` コマンドが自動的にクレート内のすべてのテスト関数を探して実行してくれます。
+Rust には [built-in test framework] があり、何も設定しなくても単体テストを実行することができます。アサーションで結果をチェックする関数をつくり、`#[test]` attribute を関数の先頭に足すだけです。後は `cargo xtest` コマンドが自動的にクレート内のすべてのテスト関数を探して実行してくれます。
 
-[内蔵されたテストフレームワーク]: https://doc.rust-lang.org/book/second-edition/ch11-00-testing.html
+[built-in test framework]: https://doc.rust-lang.org/book/second-edition/ch11-00-testing.html
 
 <!-- Unfortunately it's a bit more complicated for `no_std` applications such as our kernel. The problem is that Rust's test framework implicitly uses the built-in [`test`] library, which depends on the standard library. This means that we can't use the default test framework for our `#[no_std]` kernel. -->
 残念ながら、私たちのカーネルのような`no_std`アプリケーションの場合、もうちょっと複雑です。問題はRustのテストフレームワークは暗黙に標準ライブラリに依存している[`test`]ライブラリを使っていることです。これは私たちの`#[no_std]`のカーネルにはデフォルトのテストフレームワークが使えないことを意味しています。
@@ -71,9 +62,9 @@ error[E0463]: can't find crate for `test`
 
 
 <!-- The disadvantage compared to the default test framework is that many advanced features such as [`should_panic` tests] are not available. Instead, it is up to the implementation to provide such features itself if needed. This is ideal for us since we have a very special execution environment where the default implementations of such advanced features probably wouldn't work anyway. For example, the `#[should_panic]` attribute relies on stack unwinding to catch the panics, which we disabled for our kernel. -->
-デフォルトのテストフレームワークと比べた時の欠点は[`should_panic`テスト]のような進んだ機能が使えないことです。代わりに、このような機能は必要に応じて自身で実装することができます。私たちはとても特殊な実行環境を用いていてデフォルトの進んだ機能のデフォルト実装はいずれにせよ動かないかもしれないので、これは理想的です。例えば、`#[should_panic]`アトリビュートはパニックをキャッチするため、私たちのカーネルでは無効になっているスタックの巻き戻しに依存しています。
+デフォルトのテストフレームワークと比べた時の欠点は[`should_panic` tests]のような進んだ機能が使えないことです。代わりに、このような機能は必要に応じて自身で実装することができます。私たちはとても特殊な実行環境を用いていてデフォルトの進んだ機能のデフォルト実装はいずれにせよ動かないかもしれないので、これは理想的です。例えば、`#[should_panic]`アトリビュートはパニックをキャッチするため、私たちのカーネルでは無効になっているスタックの巻き戻しに依存しています。
 
-[`should_panic`テスト]: https://doc.rust-lang.org/book/ch11-01-writing-tests.html#checking-for-panics-with-should_panic
+[`should_panic` tests]: https://doc.rust-lang.org/book/ch11-01-writing-tests.html#checking-for-panics-with-should_panic
 
 <!-- To implement a custom test framework for our kernel, we add the following to our `main.rs`: -->
 カーネルにカスタムテストフレームワークを実装するには、次のようなコードを`main.rs`に追加します。
@@ -94,10 +85,10 @@ fn test_runner(tests: &[&dyn Fn()]) {
 ```
 
 <!-- Our runner just prints a short debug message and then calls each test function in the list. The argument type `&[&dyn Fn()]` is a [_slice_] of [_trait object_] references of the [_Fn()_] trait. It is basically a list of references to types that can be called like a function. Since the function is useless for non-test runs, we use the `#[cfg(test)]` attribute to include it only for tests. -->
-私たちのランナーは単に短いデバッグメッセージを出力し、リスト内のそれぞれのテスト関数を呼び出すだけです。引数の型である`&[&dyn Fn()]`は[_Fn()_]トレートの[_トレートオブジェクト_]への参照の[_スライス_]です。基本的には関数のように呼べる型への参照のリストです。このランナー関数はテストでない実行では無意味なので、テストにしかこれが含まれないように`#[cfg(test)]`アトリビュートを使います。
+私たちのランナーは単に短いデバッグメッセージを出力し、リスト内のそれぞれのテスト関数を呼び出すだけです。引数の型である`&[&dyn Fn()]`は[_Fn()_]トレートの[_trait object_]への参照の[_slice_]です。基本的には関数のように呼べる型への参照のリストです。このランナー関数はテストでない実行では無意味なので、テストにしかこれが含まれないように`#[cfg(test)]`アトリビュートを使います。
 
-[_スライス_]: https://doc.rust-lang.org/std/primitive.slice.html
-[_トレートオブジェクト_]: https://doc.rust-lang.org/1.30.0/book/first-edition/trait-objects.html
+[_slice_]: https://doc.rust-lang.org/std/primitive.slice.html
+[_trait object_]: https://doc.rust-lang.org/1.30.0/book/first-edition/trait-objects.html
 [_Fn()_]: https://doc.rust-lang.org/std/ops/trait.Fn.html
 
 <!-- When we run `cargo xtest` now, we see that it now succeeds. However, we still see our "Hello World" instead of the message from our `test_runner`. The reason is that our `_start` function is still used as entry point. The custom test frameworks feature generates a `main` function that calls `test_runner`, but this function is ignored because we use the `#[no_main]` attribute and provide our own entry point. -->
@@ -179,13 +170,13 @@ test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04"]
 ### I/Oポート
 
 <!-- There are two different approaches for communicating between the CPU and peripheral hardware on x86, **memory-mapped I/O** and **port-mapped I/O**. We already used memory-mapped I/O for accessing the [VGA text buffer] through the memory address `0xb8000`. This address is not mapped to RAM, but to some memory on the VGA device. -->
-CPUとペリフェラルハードウェア間の通信をする２つの異なるアプローチがあります。**メモリマップドI/O**と**ポートマップド**I/Oです。私たちはすでにメモリアドレス`0xb8000`から[VGAテキストバッファ]にアクセスするためにメモリマップドI/Oを使いました。
+CPUとペリフェラルハードウェア間の通信をする２つの異なるアプローチがあります。**メモリマップド I/O **と**ポートマップド I/O ** です。私たちはすでにメモリアドレス`0xb8000`から [VGA text buffer] にアクセスするためにメモリマップドI/Oを使いました。
 
 <!-- [VGA text buffer]: @/second-edition/posts/03-vga-text-buffer/index.md -->
-[VGAテキストバッファ]: @/second-edition/posts/03-vga-text-buffer/index.md
+[VGA text buffer]: @/second-edition/posts/03-vga-text-buffer/index.md
 
 <!-- In contrast, port-mapped I/O uses a separate I/O bus for communication. Each connected peripheral has one or more port numbers. To communicate with such an I/O port there are special CPU instructions called `in` and `out`, which take a port number and a data byte (there are also variations of these commands that allow sending an `u16` or `u32`). -->
-一方で、ポートマップドI/Oは通信のために分けられたI/Oバスを使います。それぞれ繋がっているペリフェラルは１つまたは複数のポート番号を持ちます。そのようなI/Oポートと通信するために、ポート番号とデータタイプをとる`in`と`out`と呼ばれる特殊なCPU命令があります（`u16`や`u32`を送ることができるそれぞれのコマンドの派生もあります）。
+一方で、ポートマップド I/O は通信のために分けられた I/O バスを使います。それぞれ繋がっているペリフェラルは１つまたは複数のポート番号を持ちます。そのような I/O ポートと通信するために、ポート番号とデータタイプをとる `in` と `out` と呼ばれる特殊なCPU命令があります（`u16`や`u32`を送ることができるそれぞれのコマンドの派生もあります）。
 
 <!-- The `isa-debug-exit` devices uses port-mapped I/O. The `iobase` parameter specifies on which port address the device should live (`0xf4` is a [generally unused][list of x86 I/O ports] port on the x86's IO bus) and the `iosize` specifies the port size (`0x04` means four bytes). -->
 `isa-debug-exit`デバイスはポートマップドI/Oを使っています。`iobase`パラメーターがどのポートアドレス上にデバイスがあるかを指定して（`oxf4`はx86のIOバスでは[通常は使用されない][list of x85 I/O ports]ポートです）`iosize`はポートのサイズを指定します（`0x04`は4バイトを意味します）。
@@ -196,9 +187,9 @@ CPUとペリフェラルハードウェア間の通信をする２つの異な�
 ### Exitデバイスを使う
 
 <!-- The functionality of the `isa-debug-exit` device is very simple. When a `value` is written to the I/O port specified by `iobase`, it causes QEMU to exit with [exit status] `(value << 1) | 1`. So when we write `0` to the port QEMU will exit with exit status `(0 << 1) | 1 = 1` and when we write `1` to the port it will exit with exit status `(1 << 1) | 1 = 3`. -->
-`isa-debug-exit`デバイスの機能はとても単純です。`value`が`iobase`で指定されたI/Oポートに書き込まれると、QEMUを[終了ステータス]`(value << 1) | 1`で終了させます。そのため、ポートに`0`を書き込むとQEMUは終了ステータス`(0 << 1) | 1 = 1`で終了し、`1`をポートに書き込むと`(1 << 1) | 1 = 3`で終了するでしょう。
+`isa-debug-exit`デバイスの機能はとても単純です。`value`が`iobase`で指定されたI/Oポートに書き込まれると、QEMUを[exit status]`(value << 1) | 1`で終了させます。そのため、ポートに`0`を書き込むとQEMUは終了ステータス`(0 << 1) | 1 = 1`で終了し、`1`をポートに書き込むと`(1 << 1) | 1 = 3`で終了するでしょう。
 
-[終了ステータス]: https://en.wikipedia.org/wiki/Exit_status
+[exit status]: https://en.wikipedia.org/wiki/Exit_status
 
 <!-- Instead of manually invoking the `in` and `out` assembly instructions, we use the abstractions provided by the [`x86_64`] crate. To add a dependency on that crate, we add it to the `dependencies` section in our `Cargo.toml`: -->
 手動で`in`と`out`のアセンブリ命令を呼び出す代わりに、`x86_64`クレートが提供する抽象化を使います。このクレートの依存関係を追加するために、`Cargo.toml`の`dependencies`セクションに以下を追加します。
